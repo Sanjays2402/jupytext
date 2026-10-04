@@ -714,3 +714,22 @@ def test_fence_is_closed_by_a_fence_at_least_as_long(
     """A shorter fence does not close a longer one. See issue #1533"""
     nb = jupytext.reads(text, fmt="py:percent")
     assert [cell.cell_type for cell in nb.cells] == ["markdown", "code"]
+
+
+@pytest.mark.parametrize("fence", ["```", "~~~", "````"])
+def test_round_trip_markdown_cell_with_mermaid_comments(fence, no_jupytext_version_number):
+    """The notebook from issue #1533 round trips, including the cells that follow the diagram"""
+    diagram = f"""{fence}mermaid
+stateDiagram-v2
+    %% == States ==
+    Idle --> Running
+    %% == Transitions ==
+    Running --> Done
+{fence}"""
+    nb = new_notebook(
+        cells=[new_markdown_cell(diagram), new_code_cell("1 + 1"), new_markdown_cell("The end")],
+        metadata={"jupytext": {"main_language": "python"}},
+    )
+    text = jupytext.writes(nb, fmt="py:percent")
+    nb2 = jupytext.reads(text, fmt="py:percent")
+    compare_notebooks(nb2, nb, fmt="py:percent")
