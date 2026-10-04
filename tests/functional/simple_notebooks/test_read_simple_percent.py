@@ -664,3 +664,53 @@ def test_mermaid_comments_at_any_indent_do_not_split_markdown_cell(
     (cell,) = nb.cells
     assert cell.cell_type == "markdown", cell.cell_type
     compare(jupytext.writes(nb, fmt="py:percent"), text)
+
+
+def test_unclosed_fence_does_not_swallow_next_cells(
+    text="""# %% [markdown]
+# ```python
+# this fence is never closed
+
+# %%
+1 + 1
+
+# %% [markdown]
+# last
+""",
+):
+    """An unclosed fence in a markdown cell must not hide the following cell markers. See issue #1533"""
+    nb = jupytext.reads(text, fmt="py:percent")
+    assert [cell.cell_type for cell in nb.cells] == ["markdown", "code", "markdown"]
+
+
+def test_fence_is_closed_by_same_character_only(
+    text="""# %% [markdown]
+# ```
+# ~~~
+# a tilde line does not close a backtick fence
+# ```
+
+# %%
+1 + 1
+""",
+):
+    """A fence is closed by the same character only. See issue #1533"""
+    nb = jupytext.reads(text, fmt="py:percent")
+    assert [cell.cell_type for cell in nb.cells] == ["markdown", "code"]
+
+
+def test_fence_is_closed_by_a_fence_at_least_as_long(
+    text="""# %% [markdown]
+# ````
+# ```
+# %% a mermaid comment, still inside the four-backtick fence
+# ```
+# ````
+
+# %%
+1 + 1
+""",
+):
+    """A shorter fence does not close a longer one. See issue #1533"""
+    nb = jupytext.reads(text, fmt="py:percent")
+    assert [cell.cell_type for cell in nb.cells] == ["markdown", "code"]
