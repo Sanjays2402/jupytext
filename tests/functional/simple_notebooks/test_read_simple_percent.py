@@ -608,6 +608,27 @@ fmt.Printf("Hello World!")
     compare(go, go_percent)
 
 
+def test_read_cell_with_trailing_whitespace_line():
+    """A last line made of spaces belongs to the cell, it is not a cell separator. See issue #1599"""
+    source = 'print("hello")\n# the following line has four spaces\n    '
+    nb = jupytext.reads("# %%\n" + source + "\n", fmt="py:percent")
+    assert len(nb.cells) == 1
+    (cell,) = nb.cells
+    compare(cell.source, source)
+
+
+def test_round_trip_cell_with_trailing_whitespace_line(no_jupytext_version_number):
+    """A cell ending with a whitespace-only line round trips. See issue #1599"""
+    source = 'print("hello")\n# the following line has four spaces\n    '
+    nb = new_notebook(
+        cells=[new_code_cell(source)],
+        metadata={"jupytext": {"main_language": "python"}},
+    )
+    text = jupytext.writes(nb, fmt="py:percent")
+    nb2 = jupytext.reads(text, fmt="py:percent")
+    compare(nb2.cells[0].source, source)
+
+
 def test_mermaid_comments_do_not_split_markdown_cell(
     text="""# %% [markdown]
 # ```mermaid
